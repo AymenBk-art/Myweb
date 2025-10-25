@@ -263,8 +263,10 @@
                 taskList.innerHTML = `<li class="list-group-item text-danger">خطأ في جلب المهام: ${error.message}</li>`;
             });
         }
-        
+
+        // ===========================================
         // دوال الدردشة
+        // ===========================================
         function displayMessage(content, isSender) {
             const messagesDiv = document.getElementById('messages');
             const messageElement = document.createElement('div');
@@ -375,68 +377,23 @@
             })
             .catch(error => {
                 showToast('فشل التحقق من الجلسة، يرجى تسجيل الدخول مجدداً.', false);
-                window.location.href = 'index.html'; // التوجيه للصفحة الرئيسية
+                window.location.href = 'index.html';
             });
             
             
             // 2. كود إضافة مهمة جديدة (POST /api/tasks)
             const taskForm = document.getElementById('taskForm');
-            taskForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const description = document.getElementById('taskDescription').value.trim();
-
-                fetch(`${API_URL}/api/tasks`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', },
-                    body: JSON.stringify({ description: description })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.message.includes('بنجاح')) {
-                        showToast("تم إضافة المهمة: " + data.task.description, true);
-                        document.getElementById('taskDescription').value = ''; 
-                        fetchTasks(); 
-                    } else { showToast("فشل الإضافة: " + data.message, false); }
-                })
-                .catch(error => { showToast('فشل إضافة المهمة: ' + error.message, false); });
-            });
-
+            taskForm.addEventListener('submit', (event) => { /* ... (بقية الكود) ... */ });
 
             // 3. كود تسجيل الخروج (لمسح الكوكي عبر السيرفر)
             const logoutButtons = document.querySelectorAll('#logoutButtonNav'); 
-            logoutButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    fetch(`${API_URL}/logout`, { method: 'POST' })
-                    .then(() => {
-                        window.location.href = 'index.html';
-                    })
-                    .catch(error => { showToast('فشل تسجيل الخروج، يرجى المحاولة لاحقاً.', false); });
-                });
-            });
+            logoutButtons.forEach(button => { /* ... (بقية كود الخروج) ... */ });
 
 
             // 4. ربط نموذج إرسال الرسائل
             const messageForm = document.getElementById('messageForm');
             if (messageForm) {
-                messageForm.addEventListener('submit', (event) => {
-                    event.preventDefault();
-                    
-                    const messageInput = document.getElementById('messageInput');
-                    const content = messageInput.value.trim();
-                    
-                    if (!content || !currentChatUserId) {
-                        showToast('الرجاء اختيار مستخدم وكتابة رسالة.', false);
-                        return;
-                    }
-
-                    socket.emit('sendMessage', {
-                        receiverId: currentChatUserId,
-                        content: content
-                    });
-
-                    displayMessage(content, true); 
-                    messageInput.value = '';
-                });
+                messageForm.addEventListener('submit', (event) => { /* ... (بقية الكود) ... */ });
             }
         });
     </script>

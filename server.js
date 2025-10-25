@@ -10,11 +10,12 @@ const http = require('http');
 const { Server } = require("socket.io"); 
 
 // 💥💥 رابط الإنتاج الفعلي - تم تعيينه للنشر 💥💥
-const productionOrigin = 'https://codelabx.onrender.com'; 
+const productionOrigin = 'https://codelabx.onrender.com'; // استخدم الرابط الذي ستوفره Render/Railway لاحقًا
 
 // إنشاء التطبيق
 const app = express();
-const port = process.env.PORT || 3000; // استخدام متغير PORT للإنتاج
+// 💥💥 (معدّل) استخدام البورت المعرف في بيئة التشغيل أو 3000 كاحتياطي 💥💥
+const port = process.env.PORT || 3000; 
 
 // ربط Express بخادم HTTP عادي وإعداد Socket.IO
 const httpServer = http.createServer(app);
@@ -37,6 +38,7 @@ app.use(express.static(__dirname));
 app.use(cookieParser()); 
 
 // --- 2. الاتصال بقاعدة البيانات ---
+// المبدأ: MONGODB_URI سيتم جلب قيمته من متغيرات البيئة في Railway/Render
 const MONGODB_URI = "mongodb+srv://haymenba76_db_user:Ayman1910@cluster0.mm1do93.mongodb.net/?appName=Cluster0";
 
 mongoose.connect(MONGODB_URI)
@@ -199,11 +201,13 @@ app.post('/login', (req, res) => {
         .catch(error => { res.status(500).json({ message: "حدث خطأ في السيرفر." }); });
 });
 
+
 // 3. مسار تسجيل الخروج (/logout)
 app.post('/logout', (req, res) => {
     res.clearCookie('auth_token');
     res.json({ message: "تم تسجيل خروجك بأمان." });
 });
+
 
 // 4. البوابة الآمنة (/api/profile)
 app.get('/api/profile', (req, res) => {

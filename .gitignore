@@ -1,0 +1,9 @@
+# Dependencies Folder
+/node_modules
+
+# Lock files
+package-lock.json
+
+# Environment and sensitive data
+.env
+*.log

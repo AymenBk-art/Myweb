@@ -9,12 +9,12 @@ const cookieParser = require('cookie-parser');
 const http = require('http'); 
 const { Server } = require("socket.io"); 
 
-// 💥💥 رابط الإنتاج الفعلي - تأكد من مطابقته لرابطك على Railway 💥💥
+// رابط الإنتاج الفعلي - تأكد من مطابقته لرابطك على Railway 
 const productionOrigin = 'https://myweb-production-6073.up.railway.app'; 
 
 // إنشاء التطبيق
 const app = express();
-// 💥💥 التعديل الحاسم: استخدام المنفذ الديناميكي (process.env.PORT) 💥💥
+// استخدام المنفذ الديناميكي
 const port = process.env.PORT || 3000; 
 
 // ربط Express بخادم HTTP عادي وإعداد Socket.IO
@@ -38,7 +38,8 @@ app.use(express.static(__dirname));
 app.use(cookieParser()); 
 
 // --- 2. الاتصال بقاعدة البيانات ---
-const MONGODB_URI = "mongodb+srv://haymenba76_db_user:Ayman1910@cluster0.mm1do93.mongodb.net/?appName=Cluster0";
+// 💥 سحب القيمة من متغير البيئة (هذا هو التعديل الأهم بعد الإضافة على Railway) 💥
+const MONGODB_URI = process.env.MONGODB_URI; 
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
@@ -75,7 +76,8 @@ const Message = mongoose.model('Message', messageSchema);
 
 
 // --- 4. المفتاح السري لـ JWT ---
-const JWT_SECRET = "MySuperSecretKey12345!@#";
+// 💥 سحب القيمة من متغير البيئة 💥
+const JWT_SECRET = process.env.JWT_SECRET || "MySuperSecretKey12345!@#";
 
 // --- 5. معالج Socket.IO للدردشة ---
 io.on('connection', (socket) => {

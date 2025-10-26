@@ -204,8 +204,12 @@ app.get('/dashboard.html', (req, res) => res.sendFile(__dirname + '/dashboard.ht
 // -------------------------------
 // 🚀 تشغيل السيرفر (التعديل الحاسم لـ Railway)
 // -------------------------------
-httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server is running and listening on port ${PORT}`);
+// استخدم المنفذ الديناميكي من Railway
+const PORT = process.env.PORT || 8080;
+
+// استمع على كل الواجهات (مهم جداً لـ Railway)
+const server = httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ السيرفر يعمل الآن على المنفذ: ${PORT}`);
 });
 
 // -------------------------------

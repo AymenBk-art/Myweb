@@ -15,7 +15,7 @@ const productionOrigin = 'https://myweb-production-ac0d.up.railway.app';
 // إنشاء التطبيق
 const app = express();
 // استخدام المنفذ الديناميكي (أو 8080 كقيمة احتياطية لتتوافق مع إعدادات Railway)
-const port = process.env.PORT || 8080; 
+const port = process.env.PORT || 3000; 
 
 // ربط Express بخادم HTTP عادي وإعداد Socket.IO
 const httpServer = http.createServer(app);

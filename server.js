@@ -10,7 +10,7 @@ const http = require('http');
 const { Server } = require("socket.io"); 
 
 // 💥💥 رابط الإنتاج الفعلي - تم تعيينه للنشر 💥💥
-const productionOrigin = 'https://codelabx.onrender.com'; // استخدم الرابط الذي ستوفره Render/Railway لاحقًا
+const productionOrigin = 'https://myweb-production-6073.up.railway.app'; // استخدم الرابط الذي ستوفره Render/Railway لاحقًا
 
 // إنشاء التطبيق
 const app = express();

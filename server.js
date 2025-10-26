@@ -9,8 +9,8 @@ const cookieParser = require('cookie-parser');
 const http = require('http'); 
 const { Server } = require("socket.io"); 
 
-// رابط الإنتاج الفعلي - تأكد من مطابقته لرابطك على Railway 
-const productionOrigin = 'https://myweb-production-6073.up.railway.app'; 
+// 💥 التعديل الأهم: تأكد من أن هذا الرابط يطابق رابطك الجديد (ac0d) 💥
+const productionOrigin = 'https://myweb-production-ac0d.up.railway.app'; 
 
 // إنشاء التطبيق
 const app = express();
@@ -38,7 +38,7 @@ app.use(express.static(__dirname));
 app.use(cookieParser()); 
 
 // --- 2. الاتصال بقاعدة البيانات ---
-// 💥 سحب القيمة من متغير البيئة (هذا هو التعديل الأهم بعد الإضافة على Railway) 💥
+// سحب القيمة من متغير البيئة
 const MONGODB_URI = process.env.MONGODB_URI; 
 
 mongoose.connect(MONGODB_URI)
@@ -76,7 +76,7 @@ const Message = mongoose.model('Message', messageSchema);
 
 
 // --- 4. المفتاح السري لـ JWT ---
-// 💥 سحب القيمة من متغير البيئة 💥
+// سحب القيمة من متغير البيئة
 const JWT_SECRET = process.env.JWT_SECRET || "MySuperSecretKey12345!@#";
 
 // --- 5. معالج Socket.IO للدردشة ---

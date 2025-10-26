@@ -1,41 +1,43 @@
 // -------------------------------
-// 🌐 استيراد الإضافات
+// 🧩 استيراد الإضافات
 // -------------------------------
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken'); 
-const bcrypt = require('bcrypt'); 
-const cookieParser = require('cookie-parser'); 
-const http = require('http'); 
-const { Server } = require("socket.io"); 
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const cookieParser = require('cookie-parser');
+const http = require('http');
+const { Server } = require('socket.io');
 
 // -------------------------------
-// 🔧 إعدادات عامة
+// 🌐 إعدادات الإنتاج
+// -------------------------------
+const productionOrigin = 'https://myweb-production-ac0d.up.railway.app';
+
+// -------------------------------
+// 🚀 إنشاء التطبيق
 // -------------------------------
 const app = express();
-const PORT = process.env.PORT; // Railway يرسل هذا المنفذ تلقائيًا
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://myweb-production-ac0d.up.railway.app'
-];
-
-// إنشاء خادم HTTP وربط Socket.IO به
 const httpServer = http.createServer(app);
+
+// -------------------------------
+// ⚙️ إعداد Socket.IO
+// -------------------------------
 const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
+    origin: productionOrigin,
+    methods: ['GET', 'POST'],
     credentials: true
   }
 });
 
 // -------------------------------
-// 🧩 Middleware
+// 🧰 Middleware
 // -------------------------------
 app.use(cors({
-  origin: allowedOrigins,
+  origin: productionOrigin,
   credentials: true
 }));
 app.use(bodyParser.json());
@@ -45,11 +47,11 @@ app.use(cookieParser());
 // -------------------------------
 // 🗄️ الاتصال بقاعدة البيانات
 // -------------------------------
-const MONGODB_URI = process.env.MONGODB_URI; 
+const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ تم الاتصال بقاعدة بيانات MongoDB بنجاح!'))
-  .catch((error) => console.error('❌ فشل الاتصال بقاعدة البيانات:', error));
+  .catch((err) => console.error('❌ فشل الاتصال بقاعدة البيانات:', err));
 
 // -------------------------------
 // 📦 النماذج (Schemas)
@@ -72,23 +74,23 @@ const Task = mongoose.model('Task', taskSchema);
 
 const messageSchema = new mongoose.Schema({
   sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  receiver: { type: mongoose.Types.ObjectId, ref: 'User', required: true },
+  receiver: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   content: { type: String, required: true },
   timestamp: { type: Date, default: Date.now }
 });
 const Message = mongoose.model('Message', messageSchema);
 
 // -------------------------------
-// 🔑 المفتاح السري لـ JWT
+// 🔑 إعداد JWT
 // -------------------------------
-const JWT_SECRET = process.env.JWT_SECRET || "MySuperSecretKey12345!@#";
+const JWT_SECRET = process.env.JWT_SECRET || 'MySuperSecretKey12345!@#';
 
 // -------------------------------
-// 💬 Socket.IO (نظام الدردشة)
+// 💬 إعداد Socket.IO للدردشة
 // -------------------------------
 io.on('connection', (socket) => {
   const cookies = socket.handshake.headers.cookie;
-  const tokenCookie = cookies ? cookies.split('; ').find(r => r.startsWith('auth_token=')) : null;
+  const tokenCookie = cookies ? cookies.split('; ').find(row => row.startsWith('auth_token=')) : null;
   if (!tokenCookie) return socket.disconnect();
 
   const token = tokenCookie.split('=')[1];
@@ -96,7 +98,6 @@ io.on('connection', (socket) => {
     if (err) return socket.disconnect();
 
     const userId = user.userId;
-    console.log(`[Socket.IO]: المستخدم ${user.username} متصل.`);
     socket.join(userId);
 
     socket.on('sendMessage', async (data) => {
@@ -106,13 +107,13 @@ io.on('connection', (socket) => {
       const newMessage = new Message({
         sender: userId,
         receiver: receiverId,
-        content: content
+        content
       });
       await newMessage.save();
 
       const messageData = {
         senderId: userId,
-        content: content,
+        content,
         timestamp: newMessage.timestamp
       };
 
@@ -127,60 +128,58 @@ io.on('connection', (socket) => {
 });
 
 // -------------------------------
-// 🧭 المسارات (Routes)
+// 📍 المسارات (Routes)
 // -------------------------------
 
-// تسجيل مستخدم جديد
+// 🔹 تسجيل مستخدم جديد
 app.post('/register', async (req, res) => {
   try {
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const hashed = await bcrypt.hash(req.body.password, 10);
     const newUser = new User({
       username: req.body.username,
       email: req.body.email,
-      password: hashedPassword
+      password: hashed
     });
     await newUser.save();
     res.json({ message: `تم إنشاء حسابك بنجاح، ${newUser.username}!` });
   } catch (error) {
     if (error.code === 11000) {
-      if (error.keyPattern.username) res.status(400).json({ message: "هذا الاسم مستخدم من قبل." });
-      else if (error.keyPattern.email) res.status(400).json({ message: "هذا البريد الإلكتروني مستخدم من قبل." });
-    } else res.status(500).json({ message: "حدث خطأ أثناء إنشاء الحساب." });
+      if (error.keyPattern.username)
+        res.status(400).json({ message: "هذا الاسم مستخدم من قبل." });
+      else if (error.keyPattern.email)
+        res.status(400).json({ message: "هذا البريد الإلكتروني مستخدم من قبل." });
+    } else {
+      res.status(500).json({ message: "حدث خطأ أثناء إنشاء الحساب." });
+    }
   }
 });
 
-// تسجيل الدخول
+// 🔹 تسجيل الدخول
 app.post('/login', async (req, res) => {
-  try {
-    const user = await User.findOne({ username: req.body.username });
-    if (!user) return res.status(404).json({ message: "اسم المستخدم غير موجود." });
+  const user = await User.findOne({ username: req.body.username });
+  if (!user) return res.status(404).json({ message: "اسم المستخدم غير موجود." });
 
-    const isMatch = await bcrypt.compare(req.body.password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "كلمة المرور غير صحيحة." });
+  const valid = await bcrypt.compare(req.body.password, user.password);
+  if (!valid) return res.status(401).json({ message: "كلمة المرور غير صحيحة." });
 
-    const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-    const maxAge = req.body.rememberMe ? 604800000 : 3600000;
+  const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+  res.cookie('auth_token', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'None',
+    maxAge: 604800000
+  });
 
-    res.cookie('auth_token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'None',
-      maxAge: maxAge
-    });
-
-    res.json({ message: `مرحباً بعودتك، ${user.username}!` });
-  } catch {
-    res.status(500).json({ message: "حدث خطأ في السيرفر." });
-  }
+  res.json({ message: `مرحباً بعودتك، ${user.username}!` });
 });
 
-// تسجيل الخروج
+// 🔹 تسجيل الخروج
 app.post('/logout', (req, res) => {
   res.clearCookie('auth_token');
-  res.json({ message: "تم تسجيل خروجك بأمان." });
+  res.json({ message: "تم تسجيل خروجك بنجاح." });
 });
 
-// البروفايل
+// 🔹 البروفايل
 app.get('/api/profile', (req, res) => {
   const token = req.cookies.auth_token;
   if (!token) return res.status(401).json({ message: "أنت غير مصرح لك." });
@@ -191,9 +190,6 @@ app.get('/api/profile', (req, res) => {
   });
 });
 
-// باقي الراوتات نفسها (المهام، الإعجاب، الرسائل، ...)
-// لا حاجة لتغييرها — تعمل كما هي ✅
-
 // -------------------------------
 // 🏁 تقديم الملفات الثابتة
 // -------------------------------
@@ -202,14 +198,12 @@ app.get('/index.html', (req, res) => res.sendFile(__dirname + '/index.html'));
 app.get('/dashboard.html', (req, res) => res.sendFile(__dirname + '/dashboard.html'));
 
 // -------------------------------
-// 🚀 تشغيل السيرفر (التعديل الحاسم لـ Railway)
+// 🚀 تشغيل السيرفر (Railway)
 // -------------------------------
-// استخدم المنفذ الديناميكي من Railway
 const PORT = process.env.PORT || 8080;
 
-// استمع على كل الواجهات (مهم جداً لـ Railway)
 const server = httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ السيرفر يعمل الآن على المنفذ: ${PORT}`);
+  console.log(`✅ السيرفر يعمل الآن على المنفذ: ${PORT}`);
 });
 
 // -------------------------------

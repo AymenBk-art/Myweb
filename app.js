@@ -14,7 +14,7 @@ const productionOrigin = 'https://myweb-production-ac0d.up.railway.app';
 
 // إنشاء التطبيق
 const app = express();
-// استخدام المنفذ الديناميكي (أو 8080 كقيمة احتياطية لتتوافق مع إعدادات Railway)
+// استخدام المنفذ الديناميكي
 const port = process.env.PORT || 3000; 
 
 // ربط Express بخادم HTTP عادي وإعداد Socket.IO
@@ -38,7 +38,6 @@ app.use(express.static(__dirname));
 app.use(cookieParser()); 
 
 // --- 2. الاتصال بقاعدة البيانات ---
-// سحب القيمة من متغير البيئة MONGODB_URI
 const MONGODB_URI = process.env.MONGODB_URI; 
 
 mongoose.connect(MONGODB_URI)
@@ -76,7 +75,6 @@ const Message = mongoose.model('Message', messageSchema);
 
 
 // --- 4. المفتاح السري لـ JWT ---
-// سحب القيمة من متغير البيئة JWT_SECRET
 const JWT_SECRET = process.env.JWT_SECRET || "MySuperSecretKey12345!@#";
 
 // --- 5. معالج Socket.IO للدردشة ---
@@ -414,7 +412,45 @@ app.get('/index.html', (req, res) => { res.sendFile(__dirname + '/index.html'); 
 app.get('/dashboard.html', (req, res) => { res.sendFile(__dirname + '/dashboard.html'); });
 
 
-// --- 13. تشغيل السيرفر (باستخدام httpServer) ---
-httpServer.listen(port, () => {
+// --- 13. تشغيل السيرفر والإغلاق النظيف (الجزء المعدل) ---
+const server = httpServer.listen(port, () => {
     console.log(`السيرفر يعمل الآن على المنفذ: ${port}`);
 });
+
+
+// تعريف دالة الإغلاق النظيف لمعالجة SIGTERM و SIGINT
+const shutdown = () => {
+    console.log('\nتلقيت إشارة إنهاء (SIGTERM/SIGINT). بدء الإغلاق النظيف...');
+
+    // 1. إغلاق خادم HTTP و Socket.IO
+    server.close(async (err) => {
+        if (err) {
+            console.error('⚠️ خطأ أثناء إغلاق خادم HTTP:', err);
+        } else {
+             console.log('✅ تم إغلاق خادم HTTP و Socket.IO بنجاح.');
+        }
+
+        // 2. قطع الاتصال بـ MongoDB
+        try {
+            // (false يعني عدم انتظار العمليات العالقة)
+            await mongoose.connection.close(false); 
+            console.log('✅ تم قطع الاتصال بقاعدة بيانات MongoDB.');
+            
+            // 3. إنهاء العملية بنجاح
+            process.exit(0); 
+        } catch (dbErr) {
+            console.error('❌ فشل قطع الاتصال بـ MongoDB:', dbErr);
+            process.exit(1); // إنهاء فاشل
+        }
+    });
+    
+    // 4. وضع مهلة قصوى (للتأكد من عدم التعليق)
+    setTimeout(() => {
+        console.error('❌ فشل الإغلاق النظيف خلال الوقت المحدد (10 ثوان). الإغلاق القسري...');
+        process.exit(1);
+    }, 10000).unref(); // 10 ثوانٍ كحد أقصى
+};
+
+// الاستماع لإشارات الإنهاء
+process.on('SIGTERM', shutdown); // الإشارة التي ترسلها بيئات التشغيل
+process.on('SIGINT', shutdown);  // الإشارة التي ترسلها Ctrl+C

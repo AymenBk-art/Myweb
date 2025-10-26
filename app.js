@@ -45,13 +45,22 @@ app.use(express.static(__dirname));
 app.use(cookieParser());
 
 // -------------------------------
-// 🗄️ الاتصال بقاعدة البيانات
+// 🗄️ الاتصال بقاعدة البيانات (المقطع المعدل)
 // -------------------------------
 const MONGODB_URI = process.env.MONGODB_URI;
 
-mongoose.connect(MONGODB_URI)
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    // 💡 تعديل مهم: يحدد مهلة 5 ثوانٍ كحد أقصى للبحث عن سيرفر MongoDB. 
+    // هذا يقلل من فرصة فشل النشر بسبب تأخير الاتصال.
+    serverSelectionTimeoutMS: 5000 
+  })
   .then(() => console.log('✅ تم الاتصال بقاعدة بيانات MongoDB بنجاح!'))
-  .catch((err) => console.error('❌ فشل الاتصال بقاعدة البيانات:', err));
+  .catch((err) => {
+    // التطبيق يستمر في العمل حتى لو فشل الاتصال، وهذا يمنع خطأ SIGTERM
+    console.error('❌ فشل الاتصال بقاعدة البيانات:', err);
+  });
 
 // -------------------------------
 // 📦 النماذج (Schemas)
@@ -133,6 +142,8 @@ io.on('connection', (socket) => {
 
 // 🔹 تسجيل مستخدم جديد
 app.post('/register', async (req, res) => {
+  // يجب إضافة فحص لـ Mongoose.connection.readyState هنا إذا كنت تريد منع
+  // التسجيل في حالة عدم الاتصال
   try {
     const hashed = await bcrypt.hash(req.body.password, 10);
     const newUser = new User({
@@ -202,6 +213,8 @@ app.get('/dashboard.html', (req, res) => res.sendFile(__dirname + '/dashboard.ht
 // -------------------------------
 const PORT = process.env.PORT || 8080;
 
+// 💡 هذا المقطع يضمن أن السيرفر يبدأ الاستماع إلى المنفذ فورًا،
+// وهو أمر حاسم لتجنب خطأ SIGTERM من منصة Railway.
 const server = httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ السيرفر يعمل الآن على المنفذ: ${PORT}`);
 });

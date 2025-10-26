@@ -9,12 +9,12 @@ const cookieParser = require('cookie-parser');
 const http = require('http'); 
 const { Server } = require("socket.io"); 
 
-// 💥💥 رابط الإنتاج الفعلي - تم تعيينه للنشر 💥💥
-const productionOrigin = 'https://myweb-production-6073.up.railway.app'; // استخدم الرابط الذي ستوفره Render/Railway لاحقًا
+// 💥💥 رابط الإنتاج الفعلي - تأكد من مطابقته لرابطك على Railway 💥💥
+const productionOrigin = 'https://myweb-production-6073.up.railway.app'; 
 
 // إنشاء التطبيق
 const app = express();
-// 💥💥 (معدّل) استخدام البورت المعرف في بيئة التشغيل أو 3000 كاحتياطي 💥💥
+// 💥💥 التعديل الحاسم: استخدام المنفذ الديناميكي (process.env.PORT) 💥💥
 const port = process.env.PORT || 3000; 
 
 // ربط Express بخادم HTTP عادي وإعداد Socket.IO
@@ -38,7 +38,6 @@ app.use(express.static(__dirname));
 app.use(cookieParser()); 
 
 // --- 2. الاتصال بقاعدة البيانات ---
-// المبدأ: MONGODB_URI سيتم جلب قيمته من متغيرات البيئة في Railway/Render
 const MONGODB_URI = "mongodb+srv://haymenba76_db_user:Ayman1910@cluster0.mm1do93.mongodb.net/?appName=Cluster0";
 
 mongoose.connect(MONGODB_URI)
@@ -415,5 +414,5 @@ app.get('/dashboard.html', (req, res) => { res.sendFile(__dirname + '/dashboard.
 
 // --- 13. تشغيل السيرفر (باستخدام httpServer) ---
 httpServer.listen(port, () => {
-    console.log(`السيرفر يعمل الآن على http://localhost:${port}`);
+    console.log(`السيرفر يعمل الآن على المنفذ: ${port}`);
 });

@@ -13,9 +13,9 @@ const { Server } = require('socket.io');
 
 // -------------------------------
 // 🌐 إعدادات الإنتاج
-// !! تأكد أن هذا الرابط هو الرابط الصحيح الذي أعطاه لك Railway !!
+// !! مهم: سيتم استخدام رابط Vercel هنا لاحقاً !!
 // -------------------------------
-const productionOrigin = 'https://myweb-production-e788.up.railway.app'; 
+const productionOrigin = 'https://[اسم-مشروعك-على-فيرسيل].vercel.app'; 
 
 // -------------------------------
 // 🚀 إنشاء التطبيق
@@ -24,11 +24,10 @@ const app = express();
 const httpServer = http.createServer(app);
 
 // =======================================================
-// 🏥 المسار الخاص بـ "الفحص الصحي" لـ Railway (الحل الأسرع)
-// يجب أن يكون هذا قبل أي middleware (مثل cors)
+// 🏥 المسار الخاص بـ "الفحص الصحي" لـ Replit (الحل الأسرع)
 // =======================================================
 app.get('/', (req, res) => {
-  res.status(200).send('OK'); // أرسل "OK" فوراً
+  res.status(200).send('OK'); // يرد "OK" فوراً
 });
 // =======================================================
 
@@ -55,11 +54,16 @@ const io = new Server(httpServer, {
 // -------------------------------
 // 🧰 Middleware
 // -------------------------------
-app.use(express.static(__dirname));
+// ✅ التعديل: يخدم الملفات الآن من مجلد 'public'
+app.use(express.static('public'));
+
+// تطبيق إعدادات الأمان (CORS)
 app.use(cors({
   origin: productionOrigin,
   credentials: true 
 }));
+
+// باقي الإضافات
 app.use(bodyParser.json());
 app.use(cookieParser());
 
@@ -226,9 +230,9 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 
-// =======================================================
+// -------------------------------
 // 🗄️ الاتصال بقاعدة البيانات وتشغيل الخادم (ترتيب جديد)
-// =======================================================
+// -------------------------------
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 8080;
 

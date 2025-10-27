@@ -28,7 +28,7 @@ const httpServer = http.createServer(app);
 // يجب أن يكون هذا قبل أي middleware (مثل cors)
 // =======================================================
 app.get('/', (req, res) => {
-  res.status(200).send('OK'); // أرسل "OK" فوراً (أسرع من sendFile)
+  res.status(200).send('OK'); // أرسل "OK" فوراً
 });
 // =======================================================
 
@@ -55,18 +55,16 @@ const io = new Server(httpServer, {
 // -------------------------------
 // 🧰 Middleware
 // -------------------------------
-// خدمة الملفات الثابتة (HTML/CSS)
 app.use(express.static(__dirname));
-
-// تطبيق إعدادات الأمان (CORS)
 app.use(cors({
   origin: productionOrigin,
   credentials: true 
 }));
-
-// باقي الإضافات
 app.use(bodyParser.json());
 app.use(cookieParser());
+
+// ... (باقي الكود ... النماذج، المسارات، الاتصال بقاعدة البيانات) ...
+// (الكود الذي أرسلته لك سابقاً والذي كان فيه خطأ بسيط وتم إصلاحه)
 
 // -------------------------------
 // 📦 النماذج (Schemas)
@@ -191,7 +189,7 @@ app.post('/logout', (req, res) => {
   res.json({ message: "تم تسجيل خروجك بنجاح." });
 });
 
-// 🔹 البروفايل (هذا هو القسم الذي تم إصلاحه)
+// 🔹 البروفايل
 app.get('/api/profile', (req, res) => {
   const token = req.cookies.auth_token;
   if (!token) return res.status(401).json({ message: "أنت غير مصرح لك." });
@@ -201,7 +199,6 @@ app.get('/api/profile', (req, res) => {
     res.json({ username: user.username, userId: user.userId });
   });
 });
-// (تم حذف السطر المكرر من هنا)
 
 // -------------------------------
 // 🧹 إغلاق نظيف عند SIGTERM / SIGINT

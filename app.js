@@ -13,9 +13,9 @@ const { Server } = require('socket.io');
 
 // -------------------------------
 // 🌐 إعدادات الإنتاج
-// -------------------------------
 // !! تأكد أن هذا الرابط هو الرابط الصحيح الذي أعطاه لك Railway !!
-const productionOrigin = 'myweb-production-e788.up.railway.app'; 
+// -------------------------------
+const productionOrigin = 'https://myweb-production-e788.up.railway.app'; 
 
 // -------------------------------
 // 🚀 إنشاء التطبيق
@@ -43,17 +43,26 @@ const io = new Server(httpServer, {
   }
 });
 
-// -------------------------------
-// 🧰 Middleware
-// -------------------------------
+// =======================================================
+// 🧰 Middleware (الترتيب الصحيح لحل مشكلة الفحص الصحي)
+// =======================================================
+
+// 1. خدمة الملفات الثابتة (HTML/CSS) أولاً
+// هذا سيخدم index.html للمسار "/" قبل أن يمنعه CORS
+app.use(express.static(__dirname));
+
+// 2. تطبيق إعدادات الأمان (CORS)
+// هذا سيحمي مسارات الـ API (مثل /register و /login)
 app.use(cors({
   origin: productionOrigin,
   credentials: true 
 }));
+
+// 3. باقي الإضافات
 app.use(bodyParser.json());
-// هذا السطر مهم جداً وهو يخدم كل ملفات الواجهة (HTML, CSS, JS)
-app.use(express.static(__dirname)); 
 app.use(cookieParser());
+// =======================================================
+
 
 // -------------------------------
 // 📦 النماذج (Schemas)
@@ -123,14 +132,12 @@ io.on('connection', (socket) => {
     });
   });
 });
-// =======================================================
-// 🏥 المسار الخاص بـ "الفحص الصحي" لـ Railway
-// هذا السطر يضمن أن الخادم يرد على Railway
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
-});
-// =======================================================
 
+// -------------------------------
+// 📍 المسارات (Routes)
+// -------------------------------
+
+// 🔹 تسجيل مستخدم جديد
 app.post('/register', async (req, res) => {
   try {
     const hashed = await bcrypt.hash(req.body.password, 10);
@@ -190,13 +197,6 @@ app.get('/api/profile', (req, res) => {
     res.json({ username: user.username, userId: user.userId });
   });
 });
-
-// -------------------------------
-// 🏁 تقديم الملفات الثابتة (تمت الإزالة)
-// -------------------------------
-// (( تم حذف هذا القسم ))
-// app.use(express.static) في قسم Middleware يقوم بهذه المهمة
-
 
 // -------------------------------
 // 🧹 إغلاق نظيف عند SIGTERM / SIGINT

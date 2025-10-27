@@ -24,11 +24,11 @@ const app = express();
 const httpServer = http.createServer(app);
 
 // =======================================================
-// 🏥 المسار الخاص بـ "الفحص الصحي" لـ Railway (الحل النهائي)
+// 🏥 المسار الخاص بـ "الفحص الصحي" لـ Railway (الحل الأسرع)
 // يجب أن يكون هذا قبل أي middleware (مثل cors)
 // =======================================================
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.status(200).send('OK'); // أرسل "OK" فوراً (أسرع من sendFile)
 });
 // =======================================================
 
@@ -191,7 +191,7 @@ app.post('/logout', (req, res) => {
   res.json({ message: "تم تسجيل خروجك بنجاح." });
 });
 
-// 🔹 البروفايل
+// 🔹 البروفايل (هذا هو القسم الذي تم إصلاحه)
 app.get('/api/profile', (req, res) => {
   const token = req.cookies.auth_token;
   if (!token) return res.status(401).json({ message: "أنت غير مصرح لك." });
@@ -201,6 +201,7 @@ app.get('/api/profile', (req, res) => {
     res.json({ username: user.username, userId: user.userId });
   });
 });
+// (تم حذف السطر المكرر من هنا)
 
 // -------------------------------
 // 🧹 إغلاق نظيف عند SIGTERM / SIGINT

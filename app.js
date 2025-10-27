@@ -63,9 +63,6 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// ... (باقي الكود ... النماذج، المسارات، الاتصال بقاعدة البيانات) ...
-// (الكود الذي أرسلته لك سابقاً والذي كان فيه خطأ بسيط وتم إصلاحه)
-
 // -------------------------------
 // 📦 النماذج (Schemas)
 // -------------------------------
@@ -229,9 +226,9 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 
-// -------------------------------
-// 🗄️ الاتصال بقاعدة البيانات وتشغيل الخادم
-// -------------------------------
+// =======================================================
+// 🗄️ الاتصال بقاعدة البيانات وتشغيل الخادم (ترتيب جديد)
+// =======================================================
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 8080;
 
@@ -240,17 +237,19 @@ if (!MONGODB_URI) {
     process.exit(1); 
 }
 
-mongoose.connect(MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000 
-  })
-  .then(() => {
-    console.log('✅ تم الاتصال بقاعدة بيانات MongoDB بنجاح!');
+// 1. ابدأ الخادم فوراً (لنجاح الفحص الصحي)
+server = httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ السيرفر يعمل الآن على المنفذ: ${PORT} (في انتظار قاعدة البيانات)`);
     
-    server = httpServer.listen(PORT, '0.0.0.0', () => {
-        console.log(`✅ السيرفر يعمل الآن على المنفذ: ${PORT}`);
+    // 2. الآن، بعد أن نجح الفحص الصحي، حاول الاتصال بقاعدة البيانات
+    mongoose.connect(MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000 
+    })
+    .then(() => {
+        console.log('✅ تم الاتصال بقاعدة بيانات MongoDB بنجاح!');
+    })
+    .catch((err) => {
+        // لا توقف الخادم، فقط سجل الخطأ
+        console.error('❌ فشل الاتصال بقاعدة البيانات:', err);
     });
-  })
-  .catch((err) => {
-    console.error('❌ فشل حاسم: لم يتمكن التطبيق من الاتصال بقاعدة البيانات:', err);
-    process.exit(1); 
-  });
+});

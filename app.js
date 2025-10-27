@@ -12,10 +12,10 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 // -------------------------------
-// 🌐 إعدادات الإنتاج
-// !! مهم: سيتم استخدام رابط Vercel هنا لاحقاً !!
+// 🌐 إعدادات الإنتاج (التعديل هنا)
 // -------------------------------
-const productionOrigin = 'https://[اسم-مشروعك-على-فيرسيل].vercel.app'; 
+// ✅ هذا السطر يقرأ القيمة 'https://myweb-psi-pink.vercel.app' من لوحة الأسرار
+const productionOrigin = process.env.PRODUCTION_ORIGIN; 
 
 // -------------------------------
 // 🚀 إنشاء التطبيق
@@ -24,10 +24,10 @@ const app = express();
 const httpServer = http.createServer(app);
 
 // =======================================================
-// 🏥 المسار الخاص بـ "الفحص الصحي" لـ Replit (الحل الأسرع)
+// 🏥 المسار الخاص بـ "الفحص الصحي" لـ Replit
 // =======================================================
 app.get('/', (req, res) => {
-  res.status(200).send('OK'); // يرد "OK" فوراً
+  res.status(200).send('OK'); 
 });
 // =======================================================
 
@@ -54,8 +54,7 @@ const io = new Server(httpServer, {
 // -------------------------------
 // 🧰 Middleware
 // -------------------------------
-// ✅ التعديل: يخدم الملفات الآن من مجلد 'public'
-app.use(express.static('public'));
+app.use(express.static('public')); // يخدم ملفات الواجهة الأمامية من مجلد public
 
 // تطبيق إعدادات الأمان (CORS)
 app.use(cors({

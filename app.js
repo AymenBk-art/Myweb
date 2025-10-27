@@ -14,7 +14,8 @@ const { Server } = require('socket.io');
 // -------------------------------
 // 🌐 إعدادات الإنتاج
 // -------------------------------
-const productionOrigin = 'https://myweb-production-ac0d.up.railway.app';
+// !! تأكد أن هذا الرابط هو الرابط الصحيح الذي أعطاه لك Railway !!
+const productionOrigin = 'myweb-production-e788.up.railway.app'; 
 
 // -------------------------------
 // 🚀 إنشاء التطبيق
@@ -23,13 +24,22 @@ const app = express();
 const httpServer = http.createServer(app);
 
 // -------------------------------
+// 🔑 إعداد JWT
+// -------------------------------
+const JWT_SECRET = process.env.JWT_SECRET; 
+if (!JWT_SECRET) {
+    console.error('❌ خطأ حاسم: لم يتم تعيين JWT_SECRET في متغيرات البيئة.');
+    process.exit(1); 
+}
+
+// -------------------------------
 // ⚙️ إعداد Socket.IO
 // -------------------------------
 const io = new Server(httpServer, {
   cors: {
     origin: productionOrigin,
     methods: ['GET', 'POST'],
-    credentials: true
+    credentials: true 
   }
 });
 
@@ -38,29 +48,12 @@ const io = new Server(httpServer, {
 // -------------------------------
 app.use(cors({
   origin: productionOrigin,
-  credentials: true
+  credentials: true 
 }));
 app.use(bodyParser.json());
-app.use(express.static(__dirname));
+// هذا السطر مهم جداً وهو يخدم كل ملفات الواجهة (HTML, CSS, JS)
+app.use(express.static(__dirname)); 
 app.use(cookieParser());
-
-// -------------------------------
-// 🗄️ الاتصال بقاعدة البيانات (المقطع المعدل)
-// -------------------------------
-const MONGODB_URI = process.env.MONGODB_URI;
-
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    // 💡 تعديل مهم: يحدد مهلة 5 ثوانٍ كحد أقصى للبحث عن سيرفر MongoDB. 
-    // هذا يقلل من فرصة فشل النشر بسبب تأخير الاتصال.
-    serverSelectionTimeoutMS: 5000 
-  })
-  .then(() => console.log('✅ تم الاتصال بقاعدة بيانات MongoDB بنجاح!'))
-  .catch((err) => {
-    // التطبيق يستمر في العمل حتى لو فشل الاتصال، وهذا يمنع خطأ SIGTERM
-    console.error('❌ فشل الاتصال بقاعدة البيانات:', err);
-  });
 
 // -------------------------------
 // 📦 النماذج (Schemas)
@@ -88,11 +81,6 @@ const messageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 const Message = mongoose.model('Message', messageSchema);
-
-// -------------------------------
-// 🔑 إعداد JWT
-// -------------------------------
-const JWT_SECRET = process.env.JWT_SECRET || 'MySuperSecretKey12345!@#';
 
 // -------------------------------
 // 💬 إعداد Socket.IO للدردشة
@@ -142,8 +130,6 @@ io.on('connection', (socket) => {
 
 // 🔹 تسجيل مستخدم جديد
 app.post('/register', async (req, res) => {
-  // يجب إضافة فحص لـ Mongoose.connection.readyState هنا إذا كنت تريد منع
-  // التسجيل في حالة عدم الاتصال
   try {
     const hashed = await bcrypt.hash(req.body.password, 10);
     const newUser = new User({
@@ -160,6 +146,7 @@ app.post('/register', async (req, res) => {
       else if (error.keyPattern.email)
         res.status(400).json({ message: "هذا البريد الإلكتروني مستخدم من قبل." });
     } else {
+      console.error('Registration Error:', error);
       res.status(500).json({ message: "حدث خطأ أثناء إنشاء الحساب." });
     }
   }
@@ -174,11 +161,12 @@ app.post('/login', async (req, res) => {
   if (!valid) return res.status(401).json({ message: "كلمة المرور غير صحيحة." });
 
   const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+  
   res.cookie('auth_token', token, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'None',
-    maxAge: 604800000
+    secure: true, 
+    sameSite: 'None', 
+    maxAge: 604800000 
   });
 
   res.json({ message: `مرحباً بعودتك، ${user.username}!` });
@@ -186,7 +174,7 @@ app.post('/login', async (req, res) => {
 
 // 🔹 تسجيل الخروج
 app.post('/logout', (req, res) => {
-  res.clearCookie('auth_token');
+  res.clearCookie('auth_token', { sameSite: 'None', secure: true }); 
   res.json({ message: "تم تسجيل خروجك بنجاح." });
 });
 
@@ -202,37 +190,63 @@ app.get('/api/profile', (req, res) => {
 });
 
 // -------------------------------
-// 🏁 تقديم الملفات الثابتة
+// 🏁 تقديم الملفات الثابتة (تمت الإزالة)
 // -------------------------------
-app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
-app.get('/index.html', (req, res) => res.sendFile(__dirname + '/index.html'));
-app.get('/dashboard.html', (req, res) => res.sendFile(__dirname + '/dashboard.html'));
+// (( تم حذف هذا القسم ))
+// app.use(express.static) في قسم Middleware يقوم بهذه المهمة
 
-// -------------------------------
-// 🚀 تشغيل السيرفر (Railway)
-// -------------------------------
-const PORT = process.env.PORT || 8080;
-
-// 💡 هذا المقطع يضمن أن السيرفر يبدأ الاستماع إلى المنفذ فورًا،
-// وهو أمر حاسم لتجنب خطأ SIGTERM من منصة Railway.
-const server = httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ السيرفر يعمل الآن على المنفذ: ${PORT}`);
-});
 
 // -------------------------------
 // 🧹 إغلاق نظيف عند SIGTERM / SIGINT
 // -------------------------------
+let server; 
+
 const shutdown = async () => {
   console.log('\n🛑 تلقّيت إشارة إنهاء. بدء الإغلاق النظيف...');
-  try {
-    await mongoose.connection.close(false);
-    console.log('✅ تم قطع الاتصال بقاعدة البيانات.');
-    process.exit(0);
-  } catch (err) {
-    console.error('❌ خطأ أثناء الإغلاق:', err);
-    process.exit(1);
+  if (server) {
+      server.close(() => {
+        console.log('✅ تم إغلاق خادم HTTP.');
+        mongoose.connection.close(false)
+          .then(() => {
+            console.log('✅ تم قطع الاتصال بقاعدة البيانات.');
+            process.exit(0);
+          })
+          .catch((err) => {
+            console.error('❌ خطأ أثناء إغلاق قاعدة البيانات:', err);
+            process.exit(1);
+          });
+      });
+  } else {
+      process.exit(0);
   }
 };
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+
+
+// -------------------------------
+// 🗄️ الاتصال بقاعدة البيانات وتشغيل الخادم
+// -------------------------------
+const MONGODB_URI = process.env.MONGODB_URI;
+const PORT = process.env.PORT || 8080;
+
+if (!MONGODB_URI) {
+    console.error('❌ خطأ حاسم: لم يتم تعيين MONGODB_URI في متغيرات البيئة.');
+    process.exit(1); 
+}
+
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000 
+  })
+  .then(() => {
+    console.log('✅ تم الاتصال بقاعدة بيانات MongoDB بنجاح!');
+    
+    server = httpServer.listen(PORT, '0.0.0.0', () => {
+        console.log(`✅ السيرفر يعمل الآن على المنفذ: ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ فشل حاسم: لم يتمكن التطبيق من الاتصال بقاعدة البيانات:', err);
+    process.exit(1); 
+  });

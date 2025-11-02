@@ -4,8 +4,8 @@
   "description": "Full-stack Node.js app with Express, MongoDB, and Socket.IO",
   "main": "app.js",
   "scripts": {
-  "start": "node --optimize_for_size --max_old_space_size=300 app.js"
-},
+    "start": "node --optimize_for_size --max_old_space_size=300 app.js"
+  },
   "author": "Aymen Bakouli",
   "license": "ISC",
   "dependencies": {

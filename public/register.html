@@ -52,7 +52,7 @@
 
     <script>
         // ✅ رابط Vercel نفسه لتفعيل الـ Proxy
-        const API_URL = 'https://myweb-psi-pink.vercel.app';
+        const API_URL = window.location.origin;
 
         const registerForm = document.getElementById('register-form');
 
@@ -73,8 +73,7 @@
                 password: password
             };
 
-            // ✅ التعديل: إضافة مسار /api/
-            fetch(`${API_URL}/api/register`, {
+            fetch(`${API_URL}/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

@@ -16,6 +16,8 @@ const { Server } = require('socket.io');
 // -------------------------------
 // ✅ هذا السطر يقرأ القيمة 'https://myweb-psi-pink.vercel.app' من لوحة الأسرار
 const productionOrigin = process.env.PRODUCTION_ORIGIN; 
+const corsOrigin = productionOrigin || true;
+const isProduction = process.env.NODE_ENV === 'production';
 
 // -------------------------------
 // 🚀 إنشاء التطبيق
@@ -45,7 +47,7 @@ if (!JWT_SECRET) {
 // -------------------------------
 const io = new Server(httpServer, {
   cors: {
-    origin: productionOrigin,
+    origin: corsOrigin,
     methods: ['GET', 'POST'],
     credentials: true 
   }
@@ -58,7 +60,7 @@ app.use(express.static('public')); // يخدم ملفات الواجهة الأ�
 
 // تطبيق إعدادات الأمان (CORS)
 app.use(cors({
-  origin: productionOrigin,
+  origin: corsOrigin,
   credentials: true 
 }));
 
@@ -139,13 +141,29 @@ io.on('connection', (socket) => {
 // 📍 المسارات (Routes)
 // -------------------------------
 
+const requireAuth = (req, res, next) => {
+  const token = req.cookies.auth_token;
+  if (!token) return res.status(401).json({ message: "أنت غير مصرح لك." });
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: "التذكرة غير صالحة." });
+    req.user = user;
+    next();
+  });
+};
+
 // 🔹 تسجيل مستخدم جديد
 app.post('/register', async (req, res) => {
   try {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "يرجى إدخال جميع الحقول المطلوبة." });
+    }
+
     const hashed = await bcrypt.hash(req.body.password, 10);
     const newUser = new User({
-      username: req.body.username,
-      email: req.body.email,
+      username,
+      email,
       password: hashed
     });
     await newUser.save();
@@ -175,8 +193,8 @@ app.post('/login', async (req, res) => {
   
   res.cookie('auth_token', token, {
     httpOnly: true,
-    secure: true, 
-    sameSite: 'None', 
+    secure: isProduction, 
+    sameSite: isProduction ? 'None' : 'Lax', 
     maxAge: 604800000 
   });
 
@@ -185,19 +203,117 @@ app.post('/login', async (req, res) => {
 
 // 🔹 تسجيل الخروج
 app.post('/logout', (req, res) => {
-  res.clearCookie('auth_token', { sameSite: 'None', secure: true }); 
+  res.clearCookie('auth_token', { sameSite: isProduction ? 'None' : 'Lax', secure: isProduction }); 
   res.json({ message: "تم تسجيل خروجك بنجاح." });
 });
 
 // 🔹 البروفايل
-app.get('/api/profile', (req, res) => {
-  const token = req.cookies.auth_token;
-  if (!token) return res.status(401).json({ message: "أنت غير مصرح لك." });
+app.get('/api/profile', requireAuth, (req, res) => {
+  res.json({ username: req.user.username, userId: req.user.userId });
+});
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "التذكرة غير صالحة." });
-    res.json({ username: user.username, userId: user.userId });
-  });
+// 🔹 قائمة المستخدمين
+app.get('/api/users', requireAuth, async (req, res) => {
+  try {
+    const users = await User.find({ _id: { $ne: req.user.userId } }).select('username');
+    res.json({ users });
+  } catch (error) {
+    console.error('Users Error:', error);
+    res.status(500).json({ message: "فشل جلب المستخدمين." });
+  }
+});
+
+// 🔹 المهام
+app.get('/api/tasks', requireAuth, async (req, res) => {
+  try {
+    const tasks = await Task.find({ userId: req.user.userId }).sort({ createdAt: -1 });
+    res.json({ tasks });
+  } catch (error) {
+    console.error('Fetch Tasks Error:', error);
+    res.status(500).json({ message: "فشل جلب المهام." });
+  }
+});
+
+app.post('/api/tasks', requireAuth, async (req, res) => {
+  try {
+    const description = req.body.description?.trim();
+    if (!description) {
+      return res.status(400).json({ message: "يرجى إدخال وصف المهمة." });
+    }
+    const task = await Task.create({ userId: req.user.userId, description });
+    res.json({ task });
+  } catch (error) {
+    console.error('Create Task Error:', error);
+    res.status(500).json({ message: "فشل إنشاء المهمة." });
+  }
+});
+
+app.put('/api/tasks/:id', requireAuth, async (req, res) => {
+  try {
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.userId },
+      { completed: Boolean(req.body.completed) },
+      { new: true }
+    );
+    if (!task) return res.status(404).json({ message: "المهمة غير موجودة." });
+    res.json({ task });
+  } catch (error) {
+    console.error('Update Task Error:', error);
+    res.status(500).json({ message: "فشل تحديث المهمة." });
+  }
+});
+
+app.delete('/api/tasks/:id', requireAuth, async (req, res) => {
+  try {
+    const task = await Task.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+    if (!task) return res.status(404).json({ message: "المهمة غير موجودة." });
+    res.json({ message: "تم حذف المهمة بنجاح." });
+  } catch (error) {
+    console.error('Delete Task Error:', error);
+    res.status(500).json({ message: "فشل حذف المهمة." });
+  }
+});
+
+app.put('/api/tasks/:id/like', requireAuth, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "المهمة غير موجودة." });
+
+    const userId = req.user.userId;
+    const hasLiked = task.likes.some((likeId) => likeId.equals(userId));
+    if (hasLiked) {
+      task.likes.pull(userId);
+      await task.save();
+      return res.json({ message: "تم إزالة الإعجاب.", likes: task.likes.length });
+    }
+
+    task.likes.push(userId);
+    await task.save();
+    res.json({ message: "تم تسجيل الإعجاب بنجاح.", likes: task.likes.length });
+  } catch (error) {
+    console.error('Like Task Error:', error);
+    res.status(500).json({ message: "فشل تسجيل الإعجاب." });
+  }
+});
+
+// 🔹 الرسائل
+app.get('/api/messages/:userId', requireAuth, async (req, res) => {
+  try {
+    const otherUserId = req.params.userId;
+    if (otherUserId === req.user.userId) {
+      return res.json({ messages: [] });
+    }
+    const messages = await Message.find({
+      $or: [
+        { sender: req.user.userId, receiver: otherUserId },
+        { sender: otherUserId, receiver: req.user.userId }
+      ]
+    }).sort({ timestamp: 1 });
+    res.json({ messages });
+  } catch (error) {
+    console.error('Messages Error:', error);
+    res.status(500).json({ message: "فشل جلب الرسائل." });
+  }
 });
 
 // -------------------------------

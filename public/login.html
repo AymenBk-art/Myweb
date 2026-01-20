@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إنشاء حساب جديد</title>
+    <title>تسجيل الدخول</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" 
           rel="stylesheet">
@@ -12,9 +12,9 @@
 
     <div class="container d-flex justify-content-center align-items-center vh-100">
         <div class="card shadow p-4" style="width: 100%; max-width: 450px;">
-            <form id="register-form">
-                <h2 class="card-title text-center text-success mb-4">
-                    إنشاء حساب جديد
+            <form id="login-form">
+                <h2 class="card-title text-center text-primary mb-4">
+                    تسجيل الدخول
                 </h2>
                 
                 <div class="mb-3">
@@ -22,27 +22,17 @@
                     <input type="text" id="username" name="username" class="form-control" required> 
                 </div>
                 
-                <div class="mb-3">
-                    <label for="email" class="form-label">البريد الإلكتروني</label>
-                    <input type="email" id="email" name="email" class="form-control" required>
-                </div>
-                
-                <div class="mb-3">
+                <div class="mb-4">
                     <label for="password" class="form-label">كلمة المرور</label>
                     <input type="password" id="password" name="password" class="form-control" required>
                 </div>
                 
-                <div class="mb-4">
-                    <label for="confirm-password" class="form-label">تأكيد كلمة المرور</label>
-                    <input type="password" id="confirm-password" name="confirm-password" class="form-control" required>
-                </div>
-                
-                <button type="submit" class="btn btn-success w-100 mb-3">
-                    تسجيل
+                <button type="submit" class="btn btn-primary w-100 mb-3">
+                    دخول
                 </button>
                 
                 <p class="text-center text-muted">
-                    لديك حساب بالفعل؟ <a href="login.html" class="text-decoration-none">سجل الدخول من هنا</a>
+                    ليس لديك حساب؟ <a href="register.html" class="text-decoration-none">أنشئ حساباً الآن</a>
                 </p>
             </form>
         </div>
@@ -51,51 +41,39 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // ✅ رابط Vercel نفسه لتفعيل الـ Proxy
-        const API_URL = 'https://myweb-psi-pink.vercel.app';
+        const API_URL = window.location.origin;
+        const loginForm = document.getElementById('login-form');
 
-        const registerForm = document.getElementById('register-form');
-
-        registerForm.addEventListener('submit', (event) => {
-            event.preventDefault(); 
-
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-            
-            if (password !== confirmPassword) {
-                alert('كلمتا المرور غير متطابقتين. يرجى التحقق مرة أخرى.');
-                return; 
-            }
+        loginForm.addEventListener('submit', (event) => {
+            event.preventDefault();
 
             const data = {
                 username: document.getElementById('username').value,
-                email: document.getElementById('email').value,
-                password: password
+                password: document.getElementById('password').value
             };
 
-            // ✅ التعديل: إضافة مسار /api/
-            fetch(`${API_URL}/api/register`, {
+            fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data),
-                credentials: 'include' 
+                credentials: 'include'
             })
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(err => {
-                        throw new Error(err.message || 'فشل التسجيل بسبب خطأ غير معروف في السيرفر.');
+                        throw new Error(err.message || 'فشل تسجيل الدخول بسبب خطأ غير معروف في السيرفر.');
                     });
                 }
                 return response.json();
             })
             .then(data => {
                 alert(data.message);
-                window.location.href = 'login.html'; 
+                window.location.href = 'dashboard.html';
             })
             .catch(error => {
-                console.error('Registration Error:', error);
+                console.error('Login Error:', error);
                 alert(error.message);
             });
         });
